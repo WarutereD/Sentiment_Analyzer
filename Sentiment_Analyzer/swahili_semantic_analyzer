@@ -1,56 +1,42 @@
 import pandas as pd
 import numpy as np
+import re
+from nltk.corpus import stopwords
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
 
-import spacy
-from spacy_langdetect import LanguageDetector
-
-
-# Load the default English language model and add the language detector to the pipeline
-nlp = spacy.load("en_core_web_sm")
-nlp.add_pipe(LanguageDetector(), name="language_detector", last=True)
-
-# Define a function to preprocess Swahili text
-def preprocess_swahili(text):
-    # Process the text with the pipeline
-    doc = nlp(text)
-    
-    # If the detected language is not Swahili, return an empty string
-    if doc._.language["language"] != "sw":
-        return ""
-    
-    # Otherwise, return the preprocessed text
-    return " ".join([token.lemma_.lower() for token in doc if not token.is_stop and token.is_alpha])
-    
-# Load the Swahili dataset
+# Load the dataset
 df = pd.read_csv("Sentiment_Analyzer/dataset/swahili_test.csv")
 
-# Apply the Swahili text preprocessing function
-df["maneno"] = df["maneno"].apply(preprocess_swahili)
-df = df[df["maneno"] != ""] # Filter out texts that are not in Swahili
+# Text preprocessing
+stop_words = stopwords.words("swahili")
+df["maneno"] = df["maneno"].apply(lambda x: " ".join([word for word in re.sub('[^a-zA-Z0-9\s]', '', x).split() if word not in stop_words]))
 
 # Split dataset into training and testing sets
-train_data, test_data = train_test_split(df, test_size=0.1, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(df["maneno"], df["lugha"], test_size=0.3, random_state=42)
 
-# Extract features from text using TfidfVectorizer
-vectorizer = TfidfVectorizer(min_df=2, max_df=0.8, sublinear_tf=True, use_idf=True)
-train_features = vectorizer.fit_transform(train_data["maneno"])
-test_features = vectorizer.transform(test_data["maneno"])
+# Vectorize the text data using TF-IDF
+vectorizer = TfidfVectorizer()
+X_train_vec = vectorizer.fit_transform(X_train)
+X_test_vec = vectorizer.transform(X_test)
 
-# Train logistic regression model
-model = LogisticRegression()
-model.fit(train_features, train_data["lugha"])
+# Train an SVM classifier
+svm = SVC(kernel='linear', C=1.0)
+svm.fit(X_train_vec, y_train)
 
-# Predict sentiment for testing set
-y_pred = model.predict(test_features)
+# Predict on the test set
+y_pred = svm.predict(X_test_vec)
 
-# Evaluate model performance
-accuracy = accuracy_score(test_data["lugha"], y_pred)
-precision = precision_score(test_data["lugha"], y_pred, average="weighted")
-recall = recall_score(test_data["lugha"], y_pred, average="weighted")
+# Calculate accuracy score
+acc = accuracy_score(y_test, y_pred)*100
+print("Accuracy:", acc)
 
-y_true = test_data["lugha"]
-f1 = f1_score(y_true, y_pred, average='weighted')  # or 'macro', 'micro', depending on your needs
-print("F1 score:", f1)
-print("Accuracy:", accuracy)
-print("Precision:", precision)
-print("Recall:", recall)
+# Use the trained model to predict the sentiment of new Swahili text
+new_text = "Hii ni filamu nzuri sana"
+new_text_processed = " ".join([word for word in re.sub('[^a-zA-Z0-9\s]', '', new_text).split() if word not in stop_words])
+new_text_vec = vectorizer.transform([new_text_processed])
+sentiment = svm.predict(new_text_vec)[0]
+print("Sentiment of '{}' is '{}'".format(new_text, sentiment))
+
