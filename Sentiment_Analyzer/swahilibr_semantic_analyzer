@@ -1,0 +1,34 @@
+import pandas as pd
+import numpy as np
+import re
+from nltk.corpus import stopwords
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score
+
+# Load the dataset
+df = pd.read_csv("Sentiment_Analyzer/dataset/swahili_test.csv")
+
+# Text preprocessing
+stop_words = stopwords.words("swahili")
+df["maneno"] = df["maneno"].apply(lambda x: " ".join([word for word in re.sub('[^a-zA-Z0-9\s]', '', x).split() if word not in stop_words]))
+
+# Split dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(df["maneno"], df["lugha"], test_size=0.3, random_state=42)
+
+# Vectorize the text data
+vectorizer = CountVectorizer()
+X_train_vec = vectorizer.fit_transform(X_train)
+X_test_vec = vectorizer.transform(X_test)
+
+# Train a Naive Bayes classifier
+nb = MultinomialNB()
+nb.fit(X_train_vec, y_train)
+
+# Predict on the test set
+y_pred = nb.predict(X_test_vec)
+
+# Calculate accuracy score
+acc = accuracy_score(y_test, y_pred)*100
+print("Accuracy:", acc)
