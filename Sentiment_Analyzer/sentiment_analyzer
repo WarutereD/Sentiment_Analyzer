@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import nltk
+nltk.download('stopwords')
 import re
 from nltk.corpus import stopwords
 from sklearn.model_selection import train_test_split
@@ -10,10 +12,10 @@ from sklearn.metrics import precision_recall_fscore_support
 from textblob import TextBlob
 
 # Load the dataset
-df = pd.read_csv("Sentiment_Analyzer/dataset/swahili_test.csv")
+df = pd.read_csv("Sentiment_Analyzer/dataset/swahili.csv")
 
 # Text preprocessing
-stop_words = stopwords.words("swahili")
+stop_words = stopwords.words("english")
 df["maneno"] = df["maneno"].apply(lambda x: " ".join([word for word in re.sub('[^a-zA-Z0-9\s]', '', x).split() if word not in stop_words]))
 
 # Split dataset into training and testing sets
@@ -36,7 +38,7 @@ acc = accuracy_score(y_test, y_pred)*100
 print("Accuracy:", acc)
 
 # Load the new data from a CSV file
-new_data = pd.read_csv("Sentiment_Analyzer/dataset/swahili.csv")
+new_data = pd.read_csv("Sentiment_Analyzer/dataset/swahili_test.csv")
 
 # Preprocess the new data
 new_data["maneno"] = new_data["maneno"].apply(lambda x: " ".join([word for word in re.sub('[^a-zA-Z0-9\s]', '', x).split() if word not in stop_words]))
@@ -53,14 +55,14 @@ new_data_polarity = [TextBlob(text).sentiment.polarity for text in new_data["man
 
 
 # Save the polarity scores to CSV files
-X_test_df = pd.DataFrame(X_test)
-test_data_polarity_df = pd.DataFrame(test_data_polarity, columns=["polarity"])
-test_data_polarity_df = pd.concat([X_test_df, test_data_polarity_df], axis=1)
-test_data_polarity_df.to_csv("Sentiment_Analyzer/dataset/test_data_polarity.csv", index=False)
+#X_test_df = pd.DataFrame(X_test)
+#test_data_polarity_df = pd.DataFrame(test_data_polarity, columns=["polarity"])
+#test_data_polarity_df = pd.concat([X_test_df, test_data_polarity_df], axis=1)
+# test_data_polarity_df.to_csv("Sentiment_Analyzer/dataset/test_data_polarity.csv", index=False)
 
-new_data_polarity_df = pd.DataFrame(new_data["maneno"], columns=["maneno"])
-new_data_polarity_df["polarity"] = new_data_polarity
-new_data_polarity_df.to_csv("Sentiment_Analyzer/dataset/new_data_polarity.csv", index=False)
+#new_data_polarity_df = pd.DataFrame(new_data["maneno"], columns=["maneno"])
+#new_data_polarity_df["polarity"] = new_data_polarity
+# new_data_polarity_df.to_csv("Sentiment_Analyzer/dataset/new_data_polarity.csv", index=False)
 
 
 
